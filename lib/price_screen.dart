@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:bitcoin_ticker/coin_data.dart';
+import 'package:flutter/cupertino.dart';
+import 'dart:io' show Platform;
+import 'custom_widget.dart';
 
 class PriceScreen extends StatefulWidget {
   @override
@@ -6,6 +10,75 @@ class PriceScreen extends StatefulWidget {
 }
 
 class _PriceScreenState extends State<PriceScreen> {
+  String selectedCurrency = 'USD';
+  List<DropdownMenuItem<String>> dropdownMenuItems;
+  List<Widget> pickerItems;
+  var bitCoinPrice = 'Loading';
+  var liteCoinPrice = 'Loading';
+  var etheriumPrice = 'Loading';
+
+  DropdownButton<String> androidDropdown() {
+    dropdownMenuItems = [];
+    for (int i = 0; i < currenciesList.length; i++) {
+      dropdownMenuItems.add(
+        DropdownMenuItem(
+          child: Text(currenciesList[i]),
+          value: currenciesList[i],
+        ),
+      );
+    }
+
+    return DropdownButton<String>(
+      value: selectedCurrency,
+      items: dropdownMenuItems,
+      onChanged: (value) {
+        setState(() {
+          selectedCurrency = value;
+          getData(selectedCurrency);
+          print(selectedCurrency);
+        });
+      },
+    );
+  }
+
+  CupertinoPicker iOSPicker() {
+    pickerItems = [];
+    for (int i = 0; i < currenciesList.length; i++) {
+      pickerItems.add(
+        Text(currenciesList[i]),
+      );
+    }
+
+    return CupertinoPicker(
+        backgroundColor: Colors.lightBlue,
+        itemExtent: 32.0,
+        scrollController: FixedExtentScrollController(initialItem: 19),
+        onSelectedItemChanged: (selectedIndex) {
+          getData(currenciesList[selectedIndex]);
+          print(selectedIndex);
+        },
+        children: pickerItems,
+      );
+  }
+
+  void getData(String currency) async {
+    CoinData coinData = CoinData();
+    Map response = await coinData.getCoinData(currency);
+    setState(() {
+      bitCoinPrice = response['BTC'].toString();
+      etheriumPrice = response['ETH'].toString();
+      liteCoinPrice = response['LTC'].toString();
+      selectedCurrency = currency;
+      print('Bit coin price = $bitCoinPrice');
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    getData(selectedCurrency);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -16,33 +89,15 @@ class _PriceScreenState extends State<PriceScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Padding(
-            padding: EdgeInsets.fromLTRB(18.0, 18.0, 18.0, 0),
-            child: Card(
-              color: Colors.lightBlueAccent,
-              elevation: 5.0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.0),
-              ),
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 28.0),
-                child: Text(
-                  '1 BTC = ? USD',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 20.0,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          ),
+          CustomWidget(cryptoType: 'BTC', bitCoinPrice: bitCoinPrice, currency: selectedCurrency),
+          CustomWidget(cryptoType: 'ETH', bitCoinPrice: etheriumPrice, currency: selectedCurrency),
+          CustomWidget(cryptoType: 'LTC', bitCoinPrice: liteCoinPrice, currency: selectedCurrency),
           Container(
             height: 150.0,
             alignment: Alignment.center,
             padding: EdgeInsets.only(bottom: 30.0),
             color: Colors.lightBlue,
-            child: null,
+            child: Platform.isIOS ? iOSPicker() : androidDropdown(),
           ),
         ],
       ),
